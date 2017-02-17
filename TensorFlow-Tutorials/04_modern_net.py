@@ -37,18 +37,34 @@ py_x = model(X, w_h, w_h2, w_o, p_keep_input, p_keep_hidden)
 
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=py_x, labels=Y))
 train_op = tf.train.RMSPropOptimizer(0.001, 0.9).minimize(cost)
-predict_op = tf.argmax(py_x, 1)
+
+# Evaluate model
+correct_pred = tf.equal(tf.argmax(py_x, 1), tf.argmax(Y, 1))
+accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
 # Launch the graph in a session
 with tf.Session() as sess:
     # you need to initialize all variables
     tf.global_variables_initializer().run()
 
-    for i in range(100):
+    for i in range(20):
         for start, end in zip(range(0, len(trX), 128), range(128, len(trX)+1, 128)):
-            sess.run(train_op, feed_dict={X: trX[start:end], Y: trY[start:end],
-                                          p_keep_input: 0.8, p_keep_hidden: 0.5})
-        print(i, np.mean(np.argmax(teY, axis=1) ==
-                         sess.run(predict_op, feed_dict={X: teX, 
-                                                         p_keep_input: 1.0,
-                                                         p_keep_hidden: 1.0})))
+            sess.run(train_op, feed_dict={X: trX[start:end],
+                                          Y: trY[start:end],
+                                          p_keep_input: 0.8,
+                                          p_keep_hidden: 0.5})
+
+        print("epoch %d, accuracy=%f" %
+            (i + 1, sess.run(accuracy, feed_dict={X: teX[:256],
+                                                  Y: teY[:256],
+                                                  p_keep_input: 1.0,
+                                                  p_keep_hidden: 1.0})))
+
+    print("Optimization Finished!")
+
+    # Calculate accuracy for 256 mnist test images
+    print("Testing Accuracy: ", \
+        sess.run(accuracy, feed_dict={X: mnist.test.images[:256],
+                                      Y: mnist.test.labels[:256],
+                                      p_keep_input: 1.0,
+                                      p_keep_hidden: 1.0}))
