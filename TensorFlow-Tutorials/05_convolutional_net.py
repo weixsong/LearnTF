@@ -4,7 +4,9 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.examples.tutorials.mnist import input_data
 
+training_iters = 100000
 batch_size = 128
+display_step = 10
 test_size = 256
 
 def init_weights(shape):
@@ -37,6 +39,7 @@ def model(X, w, w2, w3, w4, w_o, p_keep_conv, p_keep_hidden):
     pyx = tf.matmul(l4, w_o)
     return pyx
 
+
 mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 trX, trY, teX, teY = mnist.train.images, mnist.train.labels, mnist.test.images, mnist.test.labels
 trX = trX.reshape(-1, 28, 28, 1)  # 28x28x1 input img
@@ -57,25 +60,48 @@ py_x = model(X, w, w2, w3, w4, w_o, p_keep_conv, p_keep_hidden)
 
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=py_x, labels=Y))
 train_op = tf.train.RMSPropOptimizer(0.001, 0.9).minimize(cost)
-predict_op = tf.argmax(py_x, 1)
+
+# Evaluate model
+correct_pred = tf.equal(tf.argmax(py_x, 1), tf.argmax(Y, 1))
+accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
 # Launch the graph in a session
 with tf.Session() as sess:
     # you need to initialize all variables
     tf.global_variables_initializer().run()
+    print("Training begins...")
 
-    for i in range(100):
-        training_batch = zip(range(0, len(trX), batch_size),
-                             range(batch_size, len(trX)+1, batch_size))
-        for start, end in training_batch:
-            sess.run(train_op, feed_dict={X: trX[start:end], Y: trY[start:end],
-                                          p_keep_conv: 0.8, p_keep_hidden: 0.5})
+    testX = mnist.test.images[:256]
+    testX = np.reshape(testX, (-1, 28, 28, 1))
+    testY = mnist.test.labels[:256]
 
-        test_indices = np.arange(len(teX)) # Get A Test Batch
-        np.random.shuffle(test_indices)
-        test_indices = test_indices[0:test_size]
+    step = 1
+    while step * batch_size < training_iters:
+        batch_x, batch_y = mnist.train.next_batch(batch_size)
+        batch_x = np.reshape(batch_x, (-1, 28, 28, 1))
+        sess.run(train_op, feed_dict={X: batch_x,
+                                      Y: batch_y,
+                                      p_keep_conv: 0.8,
+                                      p_keep_hidden: 0.5})
 
-        print(i, np.mean(np.argmax(teY[test_indices], axis=1) ==
-                         sess.run(predict_op, feed_dict={X: teX[test_indices],
-                                                         p_keep_conv: 1.0,
-                                                         p_keep_hidden: 1.0})))
+        if step % display_step == 0:
+            # Calculate batch loss and accuracy
+            loss, acc = sess.run([cost, accuracy], feed_dict={X: testX,
+                                                              Y: testY,
+                                                              p_keep_conv: 1.0,
+                                                              p_keep_hidden: 1.0})
+            print("Iter " + str(step*batch_size) + ", Minibatch Loss= " + \
+                  "{:.6f}".format(loss) + ", Training Accuracy= " + \
+                  "{:.5f}".format(acc))
+
+        step += 1
+
+    print("Optimization Finished!")
+
+    # Calculate accuracy for 256 mnist test images
+    print("Testing Accuracy:", \
+        sess.run(accuracy, feed_dict={X: testX,
+                                      Y: testY,
+                                      p_keep_conv: 1.0,
+                                      p_keep_hidden: 1.0}))
+
