@@ -187,40 +187,45 @@ with tf.device("/cpu:0"):
     # calculate the mean accuracy
     accuracy = tf.reduce_mean(tower_accuracies)
 
+    # setup session
+    sess = tf.Session(config=tf.ConfigProto(log_device_placement=False, allow_soft_placement=True))
     # Initializing the variables
     init = tf.global_variables_initializer()
+    sess.run(init)
 
-    # Launch the graph
-    with tf.Session() as sess:
-        sess.run(init)
-        # start queue runner
-        tf.train.start_queue_runners(sess=sess)
+    # start queue runner
+    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
-        step = 1
-        # Keep training until reach max iterations
-        while step * batch_size < training_iters:
-            batch_x, batch_y = mnist.train.next_batch(batch_size)
-            batch_x2, batch_y2 = mnist.train.next_batch(batch_size)
-            # Run optimization op
-            sess.run(train_ops, feed_dict={x1: batch_x, y1: batch_y,
-                                           x2: batch_x2, y2: batch_y2,
-                                           keep_prob: dropout})
-            if step % display_step == 0:
-                # Calculate batch loss and accuracy
-                loss, acc = sess.run([loss, accuracy], feed_dict={x1: batch_x,
-                                                                  y2: batch_y,
-                                                                  x2: batch_x2,
-                                                                  y2: batch_y2,
-                                                                  keep_prob: 1.})
-                print("Iter " + str(step*batch_size) + ", Minibatch Loss= " + \
-                      "{:.6f}".format(loss) + ", Training Accuracy= " + \
-                      "{:.5f}".format(acc))
-            step += 1
-        print("Optimization Finished!")
+    step = 1
+    # Keep training until reach max iterations
+    while step * batch_size < training_iters:
+        batch_x, batch_y = mnist.train.next_batch(batch_size)
+        batch_x2, batch_y2 = mnist.train.next_batch(batch_size)
+        # Run optimization op
+        sess.run(train_ops, feed_dict={x1: batch_x, y1: batch_y,
+                                       x2: batch_x2, y2: batch_y2,
+                                       keep_prob: dropout})
+        if step % display_step == 0:
+            # Calculate batch loss and accuracy
+            loss, acc = sess.run([loss, accuracy], feed_dict={x1: batch_x,
+                                                              y2: batch_y,
+                                                              x2: batch_x2,
+                                                              y2: batch_y2,
+                                                              keep_prob: 1.})
+            print("Iter " + str(step*batch_size) + ", Minibatch Loss= " + \
+                  "{:.6f}".format(loss) + ", Training Accuracy= " + \
+                  "{:.5f}".format(acc))
+        step += 1
+    print("Optimization Finished!")
 
-        # Calculate accuracy for 256 mnist test images
-        print("Testing Accuracy:", sess.run(accuracy, feed_dict={x1: mnist.test.images[:256],
-                                                                 y1: mnist.test.labels[:256],
-                                                                 x2: mnist.test.images[:256],
-                                                                 y2: mnist.test.labels[:256],
-                                                                 keep_prob: 1.}))
+    # Calculate accuracy for 256 mnist test images
+    print("Testing Accuracy:", sess.run(accuracy, feed_dict={x1: mnist.test.images[:256],
+                                                             y1: mnist.test.labels[:256],
+                                                             x2: mnist.test.images[:256],
+                                                             y2: mnist.test.labels[:256],
+                                                             keep_prob: 1.}))
+
+    # stop queue threads and close the session
+    coord.request_stop()
+    coord.join(threads)
+    sess.close()
