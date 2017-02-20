@@ -126,14 +126,18 @@ def conv_net(x, dropout):
 
 
 def get_variable(name, shape):
-    initializer = tf.contrib.layers.xavier_initializer_conv2d()
-    variable = tf.get_variable(name, initializer(shape=shape))
+    """create variable on CPU"""
+    with tf.device("/cpu:0"):
+        initializer = tf.contrib.layers.xavier_initializer_conv2d()
+        variable = tf.get_variable(name, initializer(shape=shape))
     return variable
 
 
 def get_bias(name, shape):
-    initializer = tf.constant_initializer(value=0.0, dtype=tf.float32)
-    variable = tf.get_variable(name, initializer(shape=shape))
+    """create variable on CPU"""
+    with tf.device("/cpu:0"):
+        initializer = tf.constant_initializer(value=0.0, dtype=tf.float32)
+        variable = tf.get_variable(name, initializer(shape=shape))
     return variable
 
 
