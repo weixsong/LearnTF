@@ -19,7 +19,7 @@ mnist = input_data.read_data_sets("./MNIST_data/", one_hot=True)
 # Parameters
 GPU_NUMS = 2
 learning_rate = 0.001
-training_iters = 200000
+training_iters = 10000
 batch_size = 128
 display_step = 10
 
@@ -53,20 +53,15 @@ class CustomRunner(object):
         x, y = self.queue.dequeue()
         return x, y
 
-    def get_test_data(self):
-        x = mnist.test.images[:256]
-        y = mnist.test.labels[:256]
-        return x, y
-
     def thread_main(self, sess):
         stop = False
         while not stop:
             if self.coord.should_stop():
                 stop = True
                 break
-
-            batch_x, batch_y = mnist.train.next_batch(batch_size)
-            sess.run(self.enqueue_op, feed_dict={self.x_placeholder: batch_x,
+            else:
+                batch_x, batch_y = mnist.train.next_batch(batch_size)
+                sess.run(self.enqueue_op, feed_dict={self.x_placeholder: batch_x,
                                                  self.y_placeholder: batch_y})
 
     def start_threads(self, sess, n_threads=1):
@@ -252,51 +247,66 @@ with tf.device("/cpu:0"):
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
     reader.start_threads(sess=sess)
 
-    step = 1
-    # Keep training until reach max iterations
-    while step * batch_size < training_iters:
-        # Run optimization op
-        sess.run(train_ops, feed_dict={keep_prob: dropout})
-        if step % display_step == 0:
-            # Calculate batch loss and accuracy
-            loss_val, acc_val = sess.run([loss, accuracy], feed_dict={keep_prob: 1.})
-            print("Iter " + str(step*batch_size) + ", Minibatch Loss= " + \
-                  "{:.6f}".format(loss_val) + ", Training Accuracy= " + \
-                  "{:.5f}".format(acc_val))
-        step += 1
+    try:
+        step = 1
+        # Keep training until reach max iterations
+        while step * batch_size < training_iters:
+            # Run optimization op
+            sess.run(train_ops, feed_dict={keep_prob: dropout})
+            if step % display_step == 0:
+                # Calculate batch loss and accuracy
+                loss_val, acc_val = sess.run([loss, accuracy], feed_dict={keep_prob: 1.})
+                print("Iter " + str(step * batch_size) + ", Minibatch Loss= " + \
+                      "{:.6f}".format(loss_val) + ", Training Accuracy= " + \
+                      "{:.5f}".format(acc_val))
+            step += 1
+    except KeyboardInterrupt:
+        print()
+    finally:
+        # Saver for storing checkpoints of the model
+        saver = tf.train.Saver(var_list=tf.trainable_variables())
+
+        # save model to disk
+        model_path = "./model"
+        save_path = saver.save(sess, model_path)
+        print("Model saved in file %s" % save_path)
+
+        # stop queue threads and close the session
+        coord.request_stop()
+        coord.join(threads)
+        sess.close()
 
     print("Optimization Finished!")
 
-    # Saver for storing checkpoints of the model
+
+with tf.device("/cpu:0"):
+    # Here we begin to evaluate the model accuracy
+    # reset graph to get a new graph
+    tf.reset_default_graph()
+
+    # create network
+    x_placeholder = tf.placeholder(dtype=tf.float32, shape=[None, n_input])
+    y_placeholder = tf.placeholder(dtype=tf.float32, shape=[None, n_classes])
+    # dropout (keep probability)
+    keep_prob = tf.placeholder(tf.float32)
+    loss, accuracy = create_network(x_placeholder, y_placeholder, keep_prob)
+
+    sess = tf.Session(config=tf.ConfigProto(log_device_placement=False, allow_soft_placement=True))
+
+    init = tf.global_variables_initializer()
+    sess.run(init)
+
     saver = tf.train.Saver(var_list=tf.trainable_variables())
 
-    # save model to disk
+    # restore model
     model_path = "./model"
-    save_path = saver.save(sess, model_path)
-    print("Model saved in file %s" % save_path)
+    saver.restore(sess, model_path)
+    print("Model restored from file: %s" % model_path)
 
-    # stop queue threads and close the session
-    coord.request_stop()
-    coord.join(threads)
-    sess.close()
+    batch_x = mnist.test.images[:256]
+    batch_y = mnist.test.labels[:256]
+    loss_val, accuracy_val = sess.run([loss, accuracy], feed_dict={x_placeholder: batch_x,
+                                                                   y_placeholder: batch_y,
+                                                                   keep_prob: 1.0})
 
-    # start a new session
-    with tf.Session() as sess:
-        sess.run(init)
-
-        # restore model
-        saver.restore(model_path)
-        print("Model restored from file: %s" % save_path)
-
-        # create network by model data
-        x_placeholder = tf.placeholder(dtype=tf.float32, shape=[None, n_input])
-        y_placeholder = tf.placeholder(dtype=tf.float32, shape=[None, n_classes])
-        loss, accuracy = create_network(x_placeholder, y_placeholder, keep_prob)
-
-        # run test accuracy
-        batch_x, batch_y = reader.get_test_data()
-        loss_val, accuracy_val = sess.run([loss, accuracy], feed_dict={x_placeholder: batch_x,
-                                                                       y_placeholder: batch_y,
-                                                                       keep_prob: 1.0})
-
-        print("Test Loss if %f,  Accuracy is %f" % (loss_val, accuracy_val))
+    print("Test Loss is %f,  Accuracy is %f" % (loss_val, accuracy_val))
