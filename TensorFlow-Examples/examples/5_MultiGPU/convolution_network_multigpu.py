@@ -10,6 +10,7 @@ Project: https://github.com/weixsong/LearnTF
 from __future__ import print_function
 
 import tensorflow as tf
+import threading
 
 # Import MNIST data
 from tensorflow.examples.tutorials.mnist import input_data
@@ -28,11 +29,58 @@ n_classes = 10  # MNIST total classes (0-9 digits)
 dropout = 0.75  # Dropout, probability to keep units
 
 # tf Graph input
-x1 = tf.placeholder(tf.float32, [None, n_input])
-y1 = tf.placeholder(tf.float32, [None, n_classes])
-x2 = tf.placeholder(tf.float32, [None, n_input])
-y2 = tf.placeholder(tf.float32, [None, n_classes])
 keep_prob = tf.placeholder(tf.float32)  # dropout (keep probability)
+
+
+class CustomRunner(object):
+    """
+    This class manages the background threads needed to fill a queue full of data
+    """
+
+    def __init__(self, coord):
+        self.coord = coord
+        self.threads = []
+        self.x_placeholder = tf.placeholder(tf.float32, [None, n_input])
+        self.y_placeholder = tf.placeholder(tf.float32, [None, n_classes])
+
+        self.queue = tf.PaddingFIFOQueue(32,
+                                         shapes=[[None, n_input], [None, n_classes]],
+                                         dtypes=[tf.float32, tf.float32])
+        # enqueue operation
+        self.enqueue_op = self.queue.enqueue([self.x_placeholder, self.y_placeholder])
+
+    def dequeue(self):
+        x, y = self.queue.dequeue()
+        return x, y
+
+    def get_test_data(self):
+        x = mnist.test.images[:256]
+        y = mnist.test.labels[:256]
+        return x, y
+
+    def thread_main(self, sess):
+        stop = False
+        while not stop:
+            if self.coord.should_stop():
+                stop = True
+                break
+
+            batch_x, batch_y = mnist.train.next_batch(batch_size)
+            sess.run(self.enqueue_op, feed_dict={self.x_placeholder: batch_x,
+                                                 self.y_placeholder: batch_y})
+
+    def start_threads(self, sess, n_threads=1):
+        """
+        start background threads to feed queue
+        """
+        for _ in range(n_threads):
+            thread = threading.Thread(target=self.thread_main, args=(sess,))
+            # force the thread close when parent thread quit
+            thread.daemon = True
+            thread.start()
+            self.threads.append(thread)
+
+        return self.threads
 
 
 def average_gradients(tower_grads):
@@ -144,6 +192,7 @@ def get_bias(name, shape):
 with tf.device("/cpu:0"):
     # Create coordinator.
     coord = tf.train.Coordinator()
+    reader = CustomRunner(coord)
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     global_step = tf.get_variable("global_step", [], initializer=tf.constant_initializer(0), trainable=False)
 
@@ -153,10 +202,8 @@ with tf.device("/cpu:0"):
     with tf.variable_scope(tf.get_variable_scope()):
         for i in range(GPU_NUMS):
             with tf.device("/gpu:%d" % i), tf.name_scope("tower_%d" % i) as scope:
-                if i == 0:
-                    x, y = x1, y1
-                else:
-                    x, y = x2, y2
+                # get data from reader
+                x, y = reader.dequeue()
 
                 # Construct model
                 pred = conv_net(x, keep_prob)
@@ -202,28 +249,24 @@ with tf.device("/cpu:0"):
         batch_x, batch_y = mnist.train.next_batch(batch_size)
         batch_x2, batch_y2 = mnist.train.next_batch(batch_size)
         # Run optimization op
-        sess.run(train_ops, feed_dict={x1: batch_x, y1: batch_y,
-                                       x2: batch_x2, y2: batch_y2,
-                                       keep_prob: dropout})
+        sess.run(train_ops, feed_dict={keep_prob: dropout})
         if step % display_step == 0:
             # Calculate batch loss and accuracy
-            loss, acc = sess.run([loss, accuracy], feed_dict={x1: batch_x,
-                                                              y2: batch_y,
-                                                              x2: batch_x2,
-                                                              y2: batch_y2,
-                                                              keep_prob: 1.})
+            loss, acc = sess.run([loss, accuracy], feed_dict={keep_prob: 1.})
             print("Iter " + str(step*batch_size) + ", Minibatch Loss= " + \
                   "{:.6f}".format(loss) + ", Training Accuracy= " + \
                   "{:.5f}".format(acc))
         step += 1
+
     print("Optimization Finished!")
 
-    # Calculate accuracy for 256 mnist test images
-    print("Testing Accuracy:", sess.run(accuracy, feed_dict={x1: mnist.test.images[:256],
-                                                             y1: mnist.test.labels[:256],
-                                                             x2: mnist.test.images[:256],
-                                                             y2: mnist.test.labels[:256],
-                                                             keep_prob: 1.}))
+    # Saver for storing checkpoints of the model
+    saver = tf.train.Saver(var_list=tf.trainable_variables())
+
+    # save model to disk
+    model_path = "./model"
+    save_path = saver.save(sess, model_path)
+    print("Model saved in file %s" % save_path)
 
     # stop queue threads and close the session
     coord.request_stop()
