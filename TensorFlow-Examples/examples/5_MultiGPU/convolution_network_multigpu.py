@@ -239,7 +239,7 @@ with tf.device("/cpu:0"):
     accuracy = tf.reduce_mean(tower_accuracies)
 
     # setup session
-    sess = tf.Session(config=tf.ConfigProto(log_device_placement=False, allow_soft_placement=True))
+    sess = tf.Session(config=tf.ConfigProto(log_device_placement=True, allow_soft_placement=True))
     # Initializing the variables
     init = tf.global_variables_initializer()
     sess.run(init)
