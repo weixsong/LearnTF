@@ -255,16 +255,14 @@ with tf.device("/cpu:0"):
     step = 1
     # Keep training until reach max iterations
     while step * batch_size < training_iters:
-        batch_x, batch_y = mnist.train.next_batch(batch_size)
-        batch_x2, batch_y2 = mnist.train.next_batch(batch_size)
         # Run optimization op
         sess.run(train_ops, feed_dict={keep_prob: dropout})
         if step % display_step == 0:
             # Calculate batch loss and accuracy
-            loss, acc = sess.run([loss, accuracy], feed_dict={keep_prob: 1.})
+            loss_val, acc_val = sess.run([loss, accuracy], feed_dict={keep_prob: 1.})
             print("Iter " + str(step*batch_size) + ", Minibatch Loss= " + \
-                  "{:.6f}".format(loss) + ", Training Accuracy= " + \
-                  "{:.5f}".format(acc))
+                  "{:.6f}".format(loss_val) + ", Training Accuracy= " + \
+                  "{:.5f}".format(acc_val))
         step += 1
 
     print("Optimization Finished!")
@@ -297,8 +295,8 @@ with tf.device("/cpu:0"):
 
         # run test accuracy
         batch_x, batch_y = reader.get_test_data()
-        accuracy_val = sess.run(accuracy, feed_dict={x_placeholder: batch_x,
-                                                     y_placeholder: batch_y,
-                                                     keep_prob: 1.0})
+        loss_val, accuracy_val = sess.run([loss, accuracy], feed_dict={x_placeholder: batch_x,
+                                                                       y_placeholder: batch_y,
+                                                                       keep_prob: 1.0})
 
-        print("Test Accuracy is %f" % accuracy_val)
+        print("Test Loss if %f,  Accuracy is %f" % (loss_val, accuracy_val))
