@@ -19,7 +19,7 @@ mnist = input_data.read_data_sets("./MNIST_data/", one_hot=True)
 # Parameters
 GPU_NUMS = 2
 learning_rate = 0.001
-training_iters = 10000
+training_iters = 200000
 batch_size = 128
 display_step = 10
 
@@ -56,13 +56,14 @@ class CustomRunner(object):
     def thread_main(self, sess):
         stop = False
         while not stop:
-            if self.coord.should_stop():
-                stop = True
-                break
-            else:
-                batch_x, batch_y = mnist.train.next_batch(batch_size)
-                sess.run(self.enqueue_op, feed_dict={self.x_placeholder: batch_x,
-                                                 self.y_placeholder: batch_y})
+            while True:
+                if self.coord.should_stop():
+                    stop = True
+                    break
+
+                x, y = mnist.train.next_batch(batch_size)
+                sess.run(self.enqueue_op, feed_dict={self.x_placeholder: x,
+                                                     self.y_placeholder: y})
 
     def start_threads(self, sess, n_threads=1):
         """
@@ -274,10 +275,14 @@ with tf.device("/cpu:0"):
         # stop queue threads and close the session
         coord.request_stop()
         coord.join(threads)
-        sess.close()
+        # sess.close() # sess close() will cause exception issue of PaddingFIFOQueue
 
     print("Optimization Finished!")
 
+
+print("################################################")
+print("###           Evaluation model               ###")
+print("################################################")
 
 with tf.device("/cpu:0"):
     # Here we begin to evaluate the model accuracy
