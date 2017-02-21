@@ -173,6 +173,18 @@ def conv_net(x, dropout):
     return out
 
 
+def create_network(x, y, keep_prob):
+    # Construct model
+    pred = conv_net(x, keep_prob)
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y))
+
+    # Evaluate model
+    correct_pred = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+
+    return loss, accuracy
+
+
 def get_variable(name, shape):
     """create variable on CPU"""
     with tf.device("/cpu:0"):
@@ -205,18 +217,14 @@ with tf.device("/cpu:0"):
                 # get data from reader
                 x, y = reader.dequeue()
 
-                # Construct model
-                pred = conv_net(x, keep_prob)
+                # create network
+                loss, accuracy = create_network(x, y, keep_prob)
 
-                # Define loss and optimizer
-                loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y))
+                # compute gradients
                 trainable = tf.trainable_variables()
                 grads = optimizer.compute_gradients(loss, var_list=trainable)
 
-                # Evaluate model
-                correct_pred = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
-                accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
-
+                # append loss, grads, accuracy to towers
                 tower_losses.append(loss)
                 tower_grads.append(grads)
                 tower_accuracies.append(accuracy)
@@ -242,6 +250,7 @@ with tf.device("/cpu:0"):
 
     # start queue runner
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+    reader.start_threads(sess=sess)
 
     step = 1
     # Keep training until reach max iterations
@@ -272,3 +281,24 @@ with tf.device("/cpu:0"):
     coord.request_stop()
     coord.join(threads)
     sess.close()
+
+    # start a new session
+    with tf.Session() as sess:
+        sess.run(init)
+
+        # restore model
+        saver.restore(model_path)
+        print("Model restored from file: %s" % save_path)
+
+        # create network by model data
+        x_placeholder = tf.placeholder(dtype=tf.float32, shape=[None, n_input])
+        y_placeholder = tf.placeholder(dtype=tf.float32, shape=[None, n_classes])
+        loss, accuracy = create_network(x_placeholder, y_placeholder, keep_prob)
+
+        # run test accuracy
+        batch_x, batch_y = reader.get_test_data()
+        accuracy_val = sess.run(accuracy, feed_dict={x_placeholder: batch_x,
+                                                     y_placeholder: batch_y,
+                                                     keep_prob: 1.0})
+
+        print("Test Accuracy is %f" % accuracy_val)
