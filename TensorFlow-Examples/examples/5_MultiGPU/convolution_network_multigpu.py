@@ -148,28 +148,28 @@ def conv_net(x, dropout):
     x = tf.reshape(x, shape=[-1, 28, 28, 1])
 
     # Convolution Layer
-    conv1 = conv2d(x, get_variable("wc1", [5, 5, 1, 32]), get_bias("bc1", [32]))
+    conv1 = conv2d(x, get_variable("conv_layer_1", [5, 5, 1, 32]), get_bias("conv_layer_1_bias", [32]))
     # Max Pooling (down-sampling)
     conv1 = maxpool2d(conv1, k=2)
 
     # Convolution Layer
-    conv2 = conv2d(conv1, get_variable("wc2", [5, 5, 32, 64]), get_bias("bc1", [64]))
+    conv2 = conv2d(conv1, get_variable("conv_layer_2", [5, 5, 32, 64]), get_bias("conv_layer_2_bias", [64]))
     # Max Pooling (down-sampling)
     conv2 = maxpool2d(conv2, k=2)
 
     # Fully connected layer
     # Reshape conv2 output to fit fully connected layer input
-    wd1 = get_variable("wd1", [7*7*64, 1024])
-    bc1 = get_bias("bc1", [1024])
-    fc1 = tf.reshape(conv2, [-1, wd1.get_shape().as_list()[0]])
-    fc1 = tf.add(tf.matmul(fc1, wd1), bc1)
+    fcl_weight = get_variable("full_connect_layer_1", [7*7*64, 1024])
+    fcl_bias = get_bias("full_connect_layer_1_bias", [1024])
+    fc1 = tf.reshape(conv2, [-1, fcl_weight.get_shape().as_list()[0]])
+    fc1 = tf.add(tf.matmul(fc1, fcl_weight), fcl_bias)
     fc1 = tf.nn.relu(fc1)
 
     # Apply Dropout
     fc1 = tf.nn.dropout(fc1, dropout)
 
     # Output, class prediction
-    out = tf.add(tf.matmul(fc1, get_variable("out", [1024, n_classes])), get_bias("bc1", [n_classes]))
+    out = tf.add(tf.matmul(fc1, get_variable("out", [1024, n_classes])), get_bias("out_bias", [n_classes]))
     return out
 
 
@@ -189,7 +189,7 @@ def get_variable(name, shape):
     """create variable on CPU"""
     with tf.device("/cpu:0"):
         initializer = tf.contrib.layers.xavier_initializer_conv2d()
-        variable = tf.get_variable(name, initializer(shape=shape))
+        variable = tf.get_variable(name, initializer=initializer(shape=shape))
     return variable
 
 
@@ -197,7 +197,7 @@ def get_bias(name, shape):
     """create variable on CPU"""
     with tf.device("/cpu:0"):
         initializer = tf.constant_initializer(value=0.0, dtype=tf.float32)
-        variable = tf.get_variable(name, initializer(shape=shape))
+        variable = tf.get_variable(name, initializer=initializer(shape=shape))
     return variable
 
 
