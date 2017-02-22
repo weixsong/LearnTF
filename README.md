@@ -6,6 +6,7 @@ Learn TensorFlow root repo. This repo contains several TensorFlow examples & tut
 
 Original repo of TensorFlow-Examples is [TensorFlow-Examples](https://github.com/aymericdamien/TensorFlow-Examples).
 
+### Train Network on Multiple GPUs
 I add example of how to train a network on multiple GPU cards: [Convolution Network On Multiple GPUs](./TensorFlow-Examples/examples/5_MultiGPU/convolution_network_multigpu.py)
 
 ## TensorFlow-Tutorials
