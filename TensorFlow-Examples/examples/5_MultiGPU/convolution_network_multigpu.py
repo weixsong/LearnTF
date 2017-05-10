@@ -210,6 +210,7 @@ with tf.device("/cpu:0"):
     with tf.variable_scope(tf.get_variable_scope()):
         for i in range(GPU_NUMS):
             with tf.device("/gpu:%d" % i), tf.name_scope("tower_%d" % i) as scope:
+                print("############ create network on GPU %i" % i)
                 # get data from reader
                 x, y = reader.dequeue()
 
