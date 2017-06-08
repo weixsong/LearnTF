@@ -30,7 +30,7 @@ b = tf.placeholder(tf.int16)
 
 # Define some operations
 add = tf.add(a, b)
-mul = tf.mul(a, b)
+mul = tf.multiply(a, b)
 
 # Launch the default graph.
 with tf.Session() as sess:
@@ -48,6 +48,7 @@ with tf.Session() as sess:
 #
 # The value returned by the constructor represents the output
 # of the Constant op.
+# Matrix: 1x2
 matrix1 = tf.constant([[3., 3.]])
 
 # Create another Constant that produces a 2x1 matrix.
