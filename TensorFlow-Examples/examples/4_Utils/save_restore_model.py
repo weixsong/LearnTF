@@ -44,12 +44,14 @@ def multilayer_perceptron(x, weights, biases):
     out_layer = tf.matmul(layer_2, weights['out']) + biases['out']
     return out_layer
 
+
 # Store layers weight & bias
 weights = {
     'h1': tf.Variable(tf.random_normal([n_input, n_hidden_1])),
     'h2': tf.Variable(tf.random_normal([n_hidden_1, n_hidden_2])),
     'out': tf.Variable(tf.random_normal([n_hidden_2, n_classes]))
 }
+
 biases = {
     'b1': tf.Variable(tf.random_normal([n_hidden_1])),
     'b2': tf.Variable(tf.random_normal([n_hidden_2])),
@@ -102,6 +104,7 @@ with tf.Session() as sess:
     # Save model weights to disk
     save_path = saver.save(sess, model_path)
     print("Model saved in file: %s" % save_path)
+
 
 # Running a new session
 print("Starting 2nd session...")
