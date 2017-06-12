@@ -16,10 +16,18 @@ a = tf.constant(2)
 b = tf.constant(3)
 
 # Launch the default graph.
+# sess.run()
 with tf.Session() as sess:
     print("a=2, b=3")
     print("Addition with constants: %i" % sess.run(a+b))
     print("Multiplication with constants: %i" % sess.run(a*b))
+
+c = a + b
+# Launch the default graph.
+# tf.eval()
+with tf.Session():
+    print(c.eval())
+
 
 # Basic Operations with variable as graph input
 # The value returned by the constructor represents the output
@@ -33,10 +41,18 @@ add = tf.add(a, b)
 mul = tf.multiply(a, b)
 
 # Launch the default graph.
+# sess.run()
 with tf.Session() as sess:
     # Run every operation with variable input
     print("Addition with variables: %i" % sess.run(add, feed_dict={a: 2, b: 3}))
     print("Multiplication with variables: %i" % sess.run(mul, feed_dict={a: 2, b: 3}))
+
+# Launch the default graph.
+# tf.eval()
+with tf.Session():
+    # Run every operation with variable input
+    print("Addition with variables: %i" % add.eval(feed_dict={a: 2, b: 3}))
+    print("Multiplication with variables: %i" % mul.eval(feed_dict={a: 2, b: 3}))
 
 
 # ----------------
@@ -74,3 +90,8 @@ with tf.Session() as sess:
     result = sess.run(product)
     print(result)
     # ==> [[ 12.]]
+
+# Launch the default graph.
+# tf.eval()
+with tf.Session():
+    print(product.eval())
