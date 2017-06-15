@@ -15,7 +15,7 @@ rng = numpy.random
 
 # Parameters
 learning_rate = 0.001
-training_steps = 1000
+training_steps = 10000
 display_step = 50
 sample_number = 1000
 linspace_start = 0
@@ -52,11 +52,11 @@ print("training data shape")
 print(train_x.shape)
 
 # tf Graph Input
-X = tf.placeholder("float", [batch_size, 3])
-Y = tf.placeholder("float", [batch_size, 1])
+X = tf.placeholder("float", [None, 3])
+Y = tf.placeholder("float", [None, 1])
 
 # Set model weights
-W = tf.Variable(tf.random_normal([3, 1]), name="weight")
+W = tf.Variable(tf.constant([(10.0,), (20.0,), (2.0,)]), name="weight")
 b = tf.Variable(rng.randn(), name="bias")
 
 # Construct a linear model
@@ -93,7 +93,9 @@ with tf.Session() as sess:
 
     # Graphic display
     plt.plot(origin_x, train_y, 'r', label='Original data')
-    # plt.plot(train_x, sess.run(W) * train_X + sess.run(b), label='Fitted line')
+    prediction_y = sess.run(pred, feed_dict={X: train_x, Y: train_y})
+    print(prediction_y.shape)
+    plt.plot(train_x, prediction_y, 'b', label='Fitted line')
     plt.ylabel('Y')
     plt.xlabel('X')
     plt.legend()
