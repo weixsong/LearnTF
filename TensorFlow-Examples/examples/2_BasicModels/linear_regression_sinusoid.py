@@ -15,7 +15,7 @@ rng = numpy.random
 
 # Parameters
 learning_rate = 0.0001
-training_steps = 10000
+training_steps = 1600
 display_step = 50
 sample_number = 1000
 linspace_start = 2
@@ -77,6 +77,9 @@ pred = tf.add(tf.matmul(X, W), b)
 
 # Mean squared error
 cost = tf.reduce_mean(tf.reduce_sum(tf.pow(pred - Y, 2)) / 2)
+
+# add L2 regularization
+# cost = cost + 0.1 * tf.reduce_sum(tf.pow(W, 2))
 
 # Gradient descent
 optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost)
