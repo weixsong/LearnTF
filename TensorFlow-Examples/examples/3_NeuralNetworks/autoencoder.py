@@ -27,9 +27,9 @@ display_step = 1
 examples_to_show = 10
 
 # Network Parameters
-n_hidden_1 = 256 # 1st layer num features
-n_hidden_2 = 128 # 2nd layer num features
-n_input = 784 # MNIST data input (img shape: 28*28)
+n_hidden_1 = 256  # 1st layer num features
+n_hidden_2 = 128  # 2nd layer num features
+n_input = 784  # MNIST data input (img shape: 28*28)
 
 # tf Graph input (only pictures)
 X = tf.placeholder("float", [None, n_input])
@@ -40,6 +40,7 @@ weights = {
     'decoder_h1': tf.Variable(tf.random_normal([n_hidden_2, n_hidden_1])),
     'decoder_h2': tf.Variable(tf.random_normal([n_hidden_1, n_input])),
 }
+
 biases = {
     'encoder_b1': tf.Variable(tf.random_normal([n_hidden_1])),
     'encoder_b2': tf.Variable(tf.random_normal([n_hidden_2])),
@@ -50,6 +51,7 @@ biases = {
 
 # Building the encoder
 def encoder(x):
+    # shape of x is: batch_size * n_input
     # Encoder Hidden layer with sigmoid activation #1
     layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(x, weights['encoder_h1']),
                                    biases['encoder_b1']))
@@ -61,6 +63,7 @@ def encoder(x):
 
 # Building the decoder
 def decoder(x):
+    # shape of x is: batch_size * n_hidden_2
     # Encoder Hidden layer with sigmoid activation #1
     layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(x, weights['decoder_h1']),
                                    biases['decoder_b1']))
@@ -88,7 +91,7 @@ init = tf.global_variables_initializer()
 # Launch the graph
 with tf.Session() as sess:
     sess.run(init)
-    total_batch = int(mnist.train.num_examples/batch_size)
+    total_batch = int(mnist.train.num_examples / batch_size)
     # Training cycle
     for epoch in range(training_epochs):
         # Loop over all batches
@@ -98,7 +101,7 @@ with tf.Session() as sess:
             _, c = sess.run([optimizer, cost], feed_dict={X: batch_xs})
         # Display logs per epoch step
         if epoch % display_step == 0:
-            print("Epoch:", '%04d' % (epoch+1),
+            print("Epoch:", '%04d' % (epoch + 1),
                   "cost=", "{:.9f}".format(c))
 
     print("Optimization Finished!")
@@ -107,10 +110,11 @@ with tf.Session() as sess:
     encode_decode = sess.run(
         y_pred, feed_dict={X: mnist.test.images[:examples_to_show]})
     # Compare original images with their reconstructions
-    f, a = plt.subplots(2, 10, figsize=(10, 2))
+    f, a = plt.subplots(2, examples_to_show, figsize=(10, 2))
     for i in range(examples_to_show):
         a[0][i].imshow(np.reshape(mnist.test.images[i], (28, 28)))
         a[1][i].imshow(np.reshape(encode_decode[i], (28, 28)))
+
     f.show()
     plt.draw()
     plt.waitforbuttonpress()
