@@ -136,7 +136,9 @@ def dynamicRNN(x, seqlen, weights, biases):
 
     # Get lstm cell output, providing 'sequence_length' will perform dynamic
     # calculation.
-    outputs, states = tf.nn.static_rnn(lstm_cell, x, dtype=tf.float32,
+    outputs, states = tf.nn.static_rnn(lstm_cell,
+                                       x,
+                                       dtype=tf.float32,
                                        sequence_length=seqlen)
 
     # When performing dynamic calculation, we must retrieve the last
