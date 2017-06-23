@@ -41,7 +41,7 @@ y = tf.placeholder("float", [None, n_classes])
 # Define weights
 weights = {
     # Hidden layer weights => 2*n_hidden because of forward + backward cells
-    'out': tf.Variable(tf.random_normal([2 * n_hidden, n_classes]))
+    'out': tf.Variable(tf.random_normal([n_hidden, n_classes]))
 }
 biases = {
     'out': tf.Variable(tf.random_normal([n_classes]))
@@ -71,7 +71,7 @@ def BiRNN(x, weights, biases):
         lstm_fw_cell, lstm_bw_cell, x, dtype=tf.float32)
 
     # add LSTM layers after Bi-directional LSTM layer
-    lstm_cell = tf.contrib.rnn.BasicLSTMCell(n_hidden * 2)
+    lstm_cell = tf.contrib.rnn.BasicLSTMCell(n_hidden)
     outputs, _ = tf.nn.static_rnn(lstm_cell, outputs, dtype=tf.float32)
 
     # Linear activation, using rnn inner loop last output
