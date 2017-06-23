@@ -55,6 +55,10 @@ def BiRNN(x, weights, biases):
 
     # Permuting batch_size and n_steps
     x = tf.transpose(x, [1, 0, 2])
+    # Reshape to (n_steps*batch_size, n_input)
+    x = tf.reshape(x, [-1, n_input])
+    # Split to get a list of 'n_steps' tensors of shape (batch_size, n_input)
+    x = tf.split(x, n_steps, 0)
 
     # Define lstm cells with tensorflow
     # Forward direction cell
@@ -63,12 +67,12 @@ def BiRNN(x, weights, biases):
     lstm_bw_cell = tf.contrib.rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
 
     # Get lstm cell output
-    outputs, _, _ = tf.nn.bidirectional_rnn(
+    outputs, _, _ = tf.nn.static_bidirectional_rnn(
         lstm_fw_cell, lstm_bw_cell, x, dtype=tf.float32)
 
     # add LSTM layers after Bi-directional LSTM layer
-    lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(n_hidden * 2)
-    outputs, _ = tf.nn.rnn(lstm_cell, outputs, dtype=tf.float32)
+    lstm_cell = tf.contrib.rnn.BasicLSTMCell(n_hidden * 2)
+    outputs, _ = tf.nn.static_rnn(lstm_cell, outputs, dtype=tf.float32)
 
     # Linear activation, using rnn inner loop last output
     return tf.matmul(outputs[-1], weights['out']) + biases['out']
