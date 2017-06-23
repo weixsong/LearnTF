@@ -54,31 +54,52 @@ def BiRNN(x, weights, biases):
     # Current data input shape: (batch_size, n_steps, n_input)
     # Required shape: 'n_steps' tensors list of shape (batch_size, n_input)
 
+    # actually the time major transpose is un-necessary, but to show how to use
+    # time major data
+
     # Permuting batch_size and n_steps
     x = tf.transpose(x, [1, 0, 2])
+    # useless code
     # Reshape to (n_steps*batch_size, n_input)
-    x = tf.reshape(x, [-1, n_input])
+    # Regarding TF1.2, no need to split into array
+    # x = tf.reshape(x, [-1, n_input])
     # Split to get a list of 'n_steps' tensors of shape (batch_size, n_input)
-    x = tf.split(0, n_steps, x)
+    # x = tf.split(x, n_steps, axis=0)
 
     # Define lstm cells with tensorflow
     # LSTM forget gate bias initialized at `1.0` (default), meaning less forgetting
     # at the beginning of training (remembers more previous info)
     # Forward direction cell
-    lstm_fw_cell = tf.nn.rnn_cell.BasicLSTMCell(n_hidden, forget_bias=1.0)
+    lstm_fw_cell = tf.contrib.rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
     # Backward direction cell
-    lstm_bw_cell = tf.nn.rnn_cell.BasicLSTMCell(n_hidden, forget_bias=1.0)
+    lstm_bw_cell = tf.contrib.rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
 
     # Get lstm cell output
     try:
-        outputs, _, _ = tf.nn.bidirectional_rnn(lstm_fw_cell, lstm_bw_cell, x,
-                                                dtype=tf.float32)
-    except Exception:  # Old TensorFlow version only returns outputs not states
-        outputs = tf.nn.static_bidirectional_rnn(lstm_fw_cell, lstm_bw_cell, x,
-                                                 dtype=tf.float32)
+        outputs, _ = tf.nn.bidirectional_dynamic_rnn(
+            lstm_fw_cell,
+            lstm_bw_cell,
+            x,
+            time_major=True,
+            dtype=tf.float32)
+    except Exception:
+        raise
+
+    output_fw, output_bw = outputs
+    print("LSTM output shape")
+    print("forward LSTM %s" % str(output_fw.get_shape()))
+    print("backward LSTM %s" % str(output_bw.get_shape()))
+
+    # concatenate the forward and backward outputs
+    outputs = tf.concat([output_fw, output_bw], axis=2)
+    print("concatenated output shape %s" % str(outputs.get_shape()))
+
+    # input is time major, so the output is also time major, we only need to
+    # care about the last time results because we are using LSTM
 
     # Linear activation, using rnn inner loop last output
     return tf.matmul(outputs[-1], weights['out']) + biases['out']
+
 
 pred = BiRNN(x, weights, biases)
 
@@ -106,10 +127,9 @@ with tf.Session() as sess:
         # Run optimization op (backprop)
         sess.run(optimizer, feed_dict={x: batch_x, y: batch_y})
         if step % display_step == 0:
-            # Calculate batch accuracy
-            acc = sess.run(accuracy, feed_dict={x: batch_x, y: batch_y})
-            # Calculate batch loss
-            loss = sess.run(cost, feed_dict={x: batch_x, y: batch_y})
+            # Calculate batch accuracy & loss
+            acc, loss = sess.run([accuracy, cost], feed_dict={
+                x: batch_x, y: batch_y})
             print("Iter " + str(step * batch_size) + ", Minibatch Loss= " +
                   "{:.6f}".format(loss) + ", Training Accuracy= " +
                   "{:.5f}".format(acc))
