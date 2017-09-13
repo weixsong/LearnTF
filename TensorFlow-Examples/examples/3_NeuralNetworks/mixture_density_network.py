@@ -23,6 +23,7 @@ y_data = np.float32(np.sin(0.75 * x_data) * 7.0 + x_data * 0.5 + r_data * 1.0)
 
 plt.figure(figsize=(8, 8))
 plot_out = plt.plot(x_data,y_data,'ro',alpha=0.3)
+plt.title('y = 7 * sin(0.75x) + 0.5x + e')
 plt.show()
 
 
@@ -61,7 +62,9 @@ NEPOCH = 1000
 with tf.Session() as sess:
     sess.run(init)
     for i in range(NEPOCH):
-        sess.run(optimizer, feed_dict={x: x_data, y: y_data})
+        l, _ = sess.run([loss, optimizer], feed_dict={x: x_data, y: y_data})
+        if i % 10 == 0:
+            print("loss is: %s" % (str(l),))
         
     x_test = np.float32(np.arange(-10.5, 10.5, 0.1))
     x_test = x_test.reshape(x_test.size, 1)
@@ -74,5 +77,39 @@ with tf.Session() as sess:
 # now in the figure we see that our simple regression network learn the simple sinusoidal data very well.
 # However, this kind of network only works when the function we want to learn by network is one-to-one function.
 
+# x = 7 * sin(0.75y) + 0.5y + e
+temp_data = x_data
+x_data = y_data
+y_data = temp_data
 
+plt.figure(figsize=(8, 8))
+plot_out = plt.plot(x_data,y_data, 'ro', alpha=0.3)
+plt.title("x = 7 * sin(0.75y) + 0.5y + e")
+plt.xlabel("x")
+plt.ylabel("y")
+plt.show()
+
+# Launch the graph
+with tf.Session() as sess:
+    sess.run(init)
+    l, _ = sess.run([loss, optimizer], feed_dict={x: x_data, y: y_data})
+    if i % 10 == 0:
+        print("loss is: %s" % (str(l),))
+        
+    x_test = np.float32(np.arange(-10.5, 10.5, 0.1))
+    x_test = x_test.reshape(x_test.size, 1)
+    y_test = sess.run(y_out, feed_dict={x: x_test})
     
+    plt.figure(figsize=(8, 8))
+    plt.plot(x_data,y_data,'ro', x_test,y_test, 'bo', alpha=0.3)
+    plt.title("this kind of data learned very BAD!")
+    plt.show()
+
+# Our current model only predicts one output value for each input, 
+# so this approach will fail miserably. What we want is a model that has the capacity 
+# to predict a range of different output values for each input. 
+# In the next section we implement a Mixture Density Network (MDN) to do achieve this task.
+
+
+
+
