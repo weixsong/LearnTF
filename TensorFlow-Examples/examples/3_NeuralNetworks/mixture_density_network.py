@@ -212,7 +212,7 @@ def get_pi_idx(x, pdf):
 def generate_ensemble(out_pi, out_mu, out_sigma, M=10):
     NTEST = x_test.size
     result = np.random.rand(NTEST, M) # initially random [0, 1]
-    rn = np.random.randn(NTEST, M) # normal random matrix (0.0, 1.0)
+    rn = np.random.randn(NTEST, M) # normal random matrix
     mu = 0
     std = 0
     idx = 0
