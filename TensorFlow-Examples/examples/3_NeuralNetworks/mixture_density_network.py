@@ -216,7 +216,7 @@ def generate_ensemble(out_pi, out_mu, out_sigma, M=10):
     mu = 0
     std = 0
     idx = 0
-  
+
     # transforms result into random ensembles
     for j in range(0, M):
         for i in range(0, NTEST):
@@ -243,20 +243,20 @@ with tf.Session() as sess:
         losses.append(l)
         if i % 10 == 0:
             print("MDN loss: %s, step is %s" % (str(l), str(i)))
-            
-        
+
+
     plt.figure(figsize=(8, 8))
     plt.plot(np.arange(len(losses)), losses, 'r-')
     plt.title("loss")
     plt.show()
-    
+
     # sample from GMM
     out_pi_test, out_sigma_test, out_mu_test = sess.run(get_mixture_coef(output), feed_dict={x: x_test})
     y_test = generate_ensemble(out_pi_test, out_mu_test, out_sigma_test)
     plt.figure(figsize=(8, 8))
     plt.plot(x_data, y_data, 'ro', x_test, y_test, 'bo', alpha=0.3)
     plt.show()
-    
+
     # let's draw the u(x) distribution of all the Gaussian components
     print(x_test.shape)
     print(out_mu_test.shape)
@@ -264,13 +264,13 @@ with tf.Session() as sess:
     plt.figure(figsize=(8, 8))
     plt.plot(x_test, out_mu_test, 'go', x_test, y_test, 'bo', alpha=0.3)
     plt.show()
-    
-    
+
+
     # let's draw the entire mixture pdf at each point on the x-axis to get a heatmap.
-        
+
     x_heatmap_label = np.float32(np.arange(-15, 15, 0.1))
     y_heatmap_label = np.float32(np.arange(-15, 15, 0.1))
-    
+
     # compute the probability of x given mu & std
     def custom_gaussian(x, mu, std):
         x_norm = (x - mu) / std
@@ -281,10 +281,10 @@ with tf.Session() as sess:
         N = x_heatmap_label.size
         M = y_heatmap_label.size
         K = KMIX
-      
+
         z = np.zeros((N, M)) # initially random [0, 1]
         mu, std, pi = 0, 0, 0
-      
+
         # transforms result into random ensembles
         for k in range(0, K):
             for i in range(0, M):
@@ -293,10 +293,10 @@ with tf.Session() as sess:
                 std = out_sigma[i, k]
                 for j in range(0, N):
                     z[N-j-1, i] += pi * custom_gaussian(y_heatmap_label[j], mu, std)
-      
+
         return z
-        
-        
+
+
     def draw_heatmap(xedges, yedges, heatmap):
         extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
         plt.figure(figsize=(8, 8))
