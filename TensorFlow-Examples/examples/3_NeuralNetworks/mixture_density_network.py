@@ -49,7 +49,7 @@ y_out = tf.matmul(hidden_layer,W_out) + b_out
 
 
 # define a loss
-loss = tf.nn.l2_loss(y_out - y);
+loss = tf.nn.l2_loss(y_out - y)
 
 optimizer = tf.train.RMSPropOptimizer(learning_rate=0.1, decay=0.8).minimize(loss)
 
