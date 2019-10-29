@@ -283,7 +283,7 @@ with tf.Session() as sess:
         M = y_heatmap_label.size
         K = KMIX
 
-        z = np.zeros((N, M)) # initially random [0, 1]
+        z = np.zeros((N, M)) # zero heat map
         mu, std, pi = 0, 0, 0
 
         # transforms result into random ensembles
