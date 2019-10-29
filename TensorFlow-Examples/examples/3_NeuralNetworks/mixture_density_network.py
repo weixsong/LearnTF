@@ -92,9 +92,10 @@ plt.show()
 # Launch the graph
 with tf.Session() as sess:
     sess.run(init)
-    l, _ = sess.run([loss, optimizer], feed_dict={x: x_data, y: y_data})
-    if i % 10 == 0:
-        print("loss is: %s" % (str(l),))
+    for i in range(NEPOCH):
+        l, _ = sess.run([loss, optimizer], feed_dict={x: x_data, y: y_data})
+        if i % 10 == 0:
+            print("loss is: %s" % (str(l),))
         
     x_test = np.float32(np.arange(-10.5, 10.5, 0.1))
     x_test = x_test.reshape(x_test.size, 1)
